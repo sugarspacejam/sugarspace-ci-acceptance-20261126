@@ -1,0 +1,29 @@
+# Save as .github/workflows/sugarspace.yml.
+# Store the integration token in the SUGARSPACE_CI_TOKEN repository secret.
+name: Sugarspace validation
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run Sugarspace and wait for validation
+        env:
+          SUGARSPACE_CI_TOKEN: ${{ secrets.SUGARSPACE_CI_TOKEN }}
+          CI_BRANCH: ${{ github.head_ref || github.ref_name }}
+          CI_COMMIT: ${{ github.sha }}
+          CI_WORKFLOW_ID: ${{ github.run_id }}
+          CI_JOB_ID: ${{ github.job }}
+          API_BASE_URL: "https://api.staging.sugarspace.io"
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 60 "https://staging.sugarspace.io/templates/v1/run-flow.sh" --output "$RUNNER_TEMP/sugarspace-run-flow.sh"
+          bash "$RUNNER_TEMP/sugarspace-run-flow.sh"
